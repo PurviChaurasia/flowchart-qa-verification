@@ -125,7 +125,7 @@ const answer_inputs = [
       },
       {
         label: 'Somewhat',
-        value: -1
+        value: 2
       }
     ]
   },
@@ -143,7 +143,7 @@ const answer_inputs = [
       },
       {
         label: 'Somewhat',
-        value: -1
+        value: 2
       }
     ]
   },
@@ -200,16 +200,16 @@ const answer_inputs = [
     ]
   }
 ]
-function Help({info}){
+function Help({info,left}){
   const [show,setShow]=useState(false)
   return <div onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)} className={'text-lg relative font-bold cursor-help'}>
     ?
-    {show&&<div className={'absolute left-full -translate-y-1/2 text-xs font-normal border w-[300px] top-1/2 translate-x-2 bg-white p-2 rounded'}>{info}</div>}
+    {show&&<div className={'absolute z-40 shadow -translate-y-1/2 text-xs font-normal border w-[300px] top-1/2 bg-white p-2 rounded '+(left?"right-full -translate-x-2":"left-full translate-x-2")}>{info}</div>}
   </div>
 }
 function Selector({inputs, path,defaultValues}){
   return <div className={'grid grid-cols-2 gap-3'}>
-    {inputs.map(input=><div className={'bg-white rounded-md border shadow py-3 px-6'}  onChange={(e)=>{
+    {inputs.map((input,i)=><div className={'bg-white rounded-md border shadow py-3 px-6'}  onChange={(e)=>{
       set(ref(database,path+'/'+input.key),e.target.value)
     }}>
       <div className={'text- font-medium text-start mb-3'}>{input.title}</div>
@@ -218,7 +218,7 @@ function Selector({inputs, path,defaultValues}){
         {input.options.map(o=><div className={'flex items-center gap-2'}>
           <input className={'text-left'} defaultChecked={defaultValues[input.key]===o.value} value={o.value} type={'radio'} name={path+input.key} placeholder={'Test'}/>
           <div className={'text-left'}>{o.label}</div>
-          {o.info&&<Help info={o.info}/> }
+          {o.info&&<Help left={i%2} info={o.info}/> }
         </div>)}
       </div>
     </div>)}
@@ -268,21 +268,22 @@ function App() {
   }
   
   function onSubmit(){
-    /*
-    get(ref(database,'/'+idText)).then(snapshot=>{
+    setLoading(true)
+    get(ref(database,'/'+idText)).then(async snapshot=>{
       setSelectedFile(snapshot.val())
       const f = snapshot.val()
-      console.log(Object.values(f['scores']))
-      let all_done = Object.values(f['scores']).every(x=>Boolean(x)||x===0) && other_answers.every(answer=>Object.values(f['QA'][answer.key]['scores']).every(Boolean))
+      let all_done = Object.values(f['scores']).every(x=>x>=0) && other_answers.every(answer=>f[answer.key].every(q=>Object.values(q['scores']).every(x=>x>=0)))
       if(all_done){
-        set(ref(database,'/'+idText+'/scores/flag'),1)
+        await set(ref(database,'/'+idText+'/scores/flag'),1)
+        alert('Done')
       } else {
         alert('Please complete all')
       }
+      setLoading(false)
     })
-    */
-    set(ref(database,'/'+idText+'/scores/flag'),1)
-    alert("Done!")
+
+    // set(ref(database,'/'+idText+'/scores/flag'),1)
+    // alert("Done!")
   }
   
   return (
@@ -295,28 +296,28 @@ function App() {
     </div>
         <div className={'text-4xl font-bold'}>{completed}/{total}</div>
       </div>
-      <form className={'flex gap-3 items-center'} onSubmit={e=>{
+      <form className={'flex gap-3 items-center mb-8'} onSubmit={e=>{
         e.preventDefault()
         onSet()
       }}>
         <input disabled={loading} className={'grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5'} value={idText} onChange={e=>setIdText(e.target.value)} placeholder={'Enter ID'}/>
         <button disabled={loading} className={'text-white bg-blue-700 hover:bg-blue-800 disabled:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center'} onClick={onSet}>Set</button>
       </form>
-      {selectedFile&&<div className={'grid grid-cols-2 overflow-auto pb-10'}>
+      {selectedFile&&<div className={'grid grid-cols-2 gap-5 overflow-auto pb-10'}>
         <div className={'overflow-y-scroll'}>
         <pre className="mermaid">
           {selectedFile?.mermaid}
         </pre>
         </div>
         <div className={'overflow-y-scroll overflow-x-visible'}>
-            <h3 className={'text-3xl font-semibold mb-8 mt-8'}>Flow chart questions</h3>
+            <h3 className={'text-3xl font-semibold mb-8 '}>Flow chart questions</h3>
             <Selector path={`/${idText}/scores`} defaultValues={selectedFile.scores} inputs={flowchart_inputs}/>
           <h3 className={'text-3xl font-semibold mb-4 mt-8'}>Other questions</h3>
           {other_answers.map(answer=><div>
             <h5 className={'text-2xl font-medium underline mb-5 mt-8'}>{answer.label}</h5>
             <AnswerInputRenderer answers={selectedFile[answer.key]} path={`/${idText}/${answer.key}`}/>
           </div>)}
-          <button className={'w-full text-white bg-blue-700 hover:bg-blue-800 disabled:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm sm:w-auto px-5 py-2.5 text-center'} onClick={onSubmit}>Submit</button>
+          <button disabled={loading} className={'w-full text-white bg-blue-700 hover:bg-blue-800 disabled:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm sm:w-auto px-5 py-2.5 text-center'} onClick={onSubmit}>Submit</button>
 
         </div>
       </div>}

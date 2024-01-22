@@ -242,17 +242,18 @@ function App() {
   const [completed,setCompleted]=useState()
   const [total,setTotal]=useState()
   const [loading,setLoading]=useState(false)
+  const [loadingTracker,setLoadingTracker]=useState(false)
   useEffect(() => {
     mermaid.run();
   }, [selectedFile]);
-  useEffect(() => {
-    mermaid.initialize({ startOnLoad: true })
+  function getTrackerInfo(){
+    setLoadingTracker(true)
     get(ref(database,'/')).then(snapshot=>{
       const val = snapshot.val()
       setTotal(Object.keys(val).length)
       setCompleted(Object.values(val).filter(val=>val.scores?.flag).length)
     })
-  }, []);
+  }
   function onSet(){
     setLoading(true)
     get(ref(database,'/'+idText)).then(snapshot=>{
@@ -294,7 +295,11 @@ function App() {
       <a href='https://humdrum-bottom-a65.notion.site/Flowchart-Quality-Evaluation-Rubric-059f0fd3db2148a9bc511bacbc8f807f?pvs=4' target='_blank' rel='noopener noreferrer' className={'text-2xl px-2 py-1 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out'}>Flowchart Rubric</a>
       <a href='https://humdrum-bottom-a65.notion.site/Q-A-Quality-Evaluation-Rubric-4ff0976d121a46e08216ac2fdd2a9a47?pvs=4' target='_blank' rel='noopener noreferrer' className={'text-2xl px-2 py-1 hover:bg-blue-500 hover:text-white transition-colors duration-300 ease-in-out'}style={{ marginLeft: '30px' }}>QA Rubric</a>
     </div>
-        <div className={'text-4xl font-bold'}>{completed}/{total}</div>
+        {total&&completed&&<div className={'text-4xl font-bold'}>{completed}/{total}</div>}
+        {(!total||!completed)&&<button disabled={loadingTracker}
+                 className={'text-white bg-blue-700 hover:bg-blue-800 disabled:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center'}
+                 onClick={getTrackerInfo}>{loadingTracker?'Loading':'Get Status'}</button>}
+
       </div>
       <form className={'flex gap-3 items-center mb-8'} onSubmit={e=>{
         e.preventDefault()
